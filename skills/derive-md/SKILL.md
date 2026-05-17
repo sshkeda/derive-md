@@ -31,7 +31,7 @@ derive-md regen --profile agents-md --no-markdown-docs
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-`derive-md agents --censor` should be run from the target repo. It launches Pi with the `agents-md` prompt, passes `--no-context-files`, and loads `pi-censor` for profile-defined protected files.
+`derive-md agents --censor` should be run from the target repo. It launches Pi with the `agents-md` prompt, passes `--no-context-files`, and loads `pi-censor` for profile-defined protected files with protected writes blocked.
 
 Default `agents-md` regeneration uses `--existing-target ignore`: the current target may be used for before/after comparison, but not as policy evidence. Use `summary` for a weak prior, `full` for conservative rewrites, and `--no-markdown-docs` when non-target Markdown docs should not influence the result.
 

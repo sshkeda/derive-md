@@ -22,7 +22,7 @@ This command:
 
 1. detects the current repo and target `AGENTS.md`
 2. launches Pi with `--no-context-files` so old `AGENTS.md` / `CLAUDE.md` files are not preloaded as instructions
-3. loads `pi-censor` for profile-defined protected files when `--censor` is set
+3. loads `pi-censor` for profile-defined protected files when `--censor` is set, with protected writes blocked
 4. tells Pi to infer the right policy from repo evidence
 5. asks Pi to show the inferred policy outline and before/after change summary before editing
 6. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter

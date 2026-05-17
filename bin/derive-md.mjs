@@ -332,7 +332,7 @@ function runRegen(args) {
       console.log("\n--- derive-md censor ---\n");
       console.log(
         useCensor
-          ? `extension: ${defaultPiCensorPath}\npaths: ${censorPaths}`
+          ? `extension: ${defaultPiCensorPath}\npaths: ${censorPaths}\nblock_writes: true`
           : `not available: ${defaultPiCensorPath}`,
       );
     }
@@ -359,6 +359,7 @@ function runRegen(args) {
             PI_CENSOR_PATHS: censorPaths,
             PI_CENSOR_MESSAGE:
               "derive-md is censoring profile-protected files for infer-first regeneration.",
+            PI_CENSOR_BLOCK_WRITES: "1",
           }
         : {}),
     },
