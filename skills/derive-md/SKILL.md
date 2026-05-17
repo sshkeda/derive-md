@@ -31,7 +31,7 @@ derive-md regen --profile agents-md --no-markdown-docs
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-`derive-md agents --censor` should be run from the target repo. It snapshots profile-protected files under `~/.derive-md/projects/.../snapshots/`, launches Pi with the `agents-md` prompt, passes `--no-context-files`, and loads `pi-censor` to block `read` tool access to protected files.
+`derive-md agents --censor` should be run from the target repo. It snapshots profile-protected files under `~/.derive-md/projects/.../snapshots/`, launches Pi with the `agents-md` prompt, passes `--no-context-files`, and loads `pi-censor` to block `read` tool access to `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, and `README.md`.
 
 Default `agents-md` regeneration uses `--existing-target ignore`: the current target may be used for before/after comparison, but not as policy evidence. Use `summary` for a weak prior, `full` for conservative rewrites, and `--no-markdown-docs` when non-target Markdown docs should not influence the result.
 
@@ -62,7 +62,7 @@ When asked to update AGENTS.md with derive-md:
 1. Run from the target repo.
 2. Prefer `derive-md agents --censor` for interactive user-driven updates.
 3. Use `derive-md agents --censor --dry-run` to inspect the launch prompt and censor config without opening Pi.
-4. The launched agent must infer policy from repo evidence without reading existing AGENTS.md/CLAUDE.md content, then present the inferred policy outline before editing.
+4. The launched agent must infer policy from repo evidence without reading existing AGENTS.md, CLAUDE.md, SKILL.md, or README.md content, then present the inferred policy outline before editing.
 5. The launched agent must not copy the bias-control instruction into the target policy; if future regeneration is relevant, tell agents to use `derive-md agents --censor`.
 6. After editing, run `derive-md lint --profile agents-md AGENTS.md`.
 
