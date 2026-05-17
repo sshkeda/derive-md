@@ -25,10 +25,14 @@ Do not treat `derive-md` as a blind generator. It should prepare context and lau
 derive-md profiles
 derive-md regen --profile agents-md
 derive-md regen --profile agents-md --dry-run
+derive-md regen --profile agents-md --existing-target ignore|summary|full
+derive-md regen --profile agents-md --no-markdown-docs
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-`derive-md regen --profile agents-md` should be run from the target repo. It launches Pi with a controlled prompt that tells the agent to inspect the repo itself.
+`derive-md regen --profile agents-md` should be run from the target repo. It launches Pi with `--no-context-files` and a controlled prompt that tells the agent to inspect the repo itself.
+
+Default `agents-md` regeneration uses `--existing-target ignore`: the current target may be used for before/after comparison, but not as policy evidence. Use `summary` for a weak prior, `full` for conservative rewrites, and `--no-markdown-docs` when non-target Markdown docs should not influence the result.
 
 Use `--dry-run` when testing from an agent session to avoid launching interactive Pi:
 
@@ -57,7 +61,7 @@ When asked to update AGENTS.md with derive-md:
 1. Run from the target repo.
 2. Prefer `derive-md regen --profile agents-md` for interactive user-driven updates.
 3. Use `derive-md regen --profile agents-md --dry-run` to inspect the launch prompt without opening Pi.
-4. The launched agent must inspect the repo files, git status, and recent commits itself, then summarize its understanding and ask the user to confirm before editing.
+4. The launched agent must infer policy from repo evidence, then present the inferred policy outline and before/after change summary before editing.
 5. After editing, run `derive-md lint --profile agents-md AGENTS.md`.
 
 ## Canonical AGENTS.md format

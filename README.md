@@ -12,13 +12,19 @@ cd ../some-repo
 derive-md regen --profile agents-md
 ```
 
+Default behavior is equivalent to:
+
+```bash
+derive-md regen --profile agents-md --existing-target ignore
+```
+
 This command:
 
 1. detects the current repo and target `AGENTS.md`
-2. launches Pi with a controlled `agents-md` prompt
-3. tells Pi to inspect the repo, git status, recent commits, and relevant files itself
-4. asks Pi to confirm its understanding before editing
-5. expects Pi to rewrite `AGENTS.md`, show a diff, and run the linter
+2. launches Pi with `--no-context-files` so old `AGENTS.md` / `CLAUDE.md` files are not preloaded as instructions
+3. tells Pi to infer the right policy from repo evidence
+4. asks Pi to show the inferred policy outline and before/after change summary before editing
+5. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter
 
 ## Profiles
 
@@ -35,6 +41,24 @@ Planned profiles:
 - `skill-md` — Pi/Claude-style skill files
 - `readme-md` — repo README regeneration
 - `source-derived-md` — raw source data to semantic Markdown derivatives
+
+## Existing target modes
+
+```bash
+derive-md regen --profile agents-md --existing-target ignore
+derive-md regen --profile agents-md --existing-target summary
+derive-md regen --profile agents-md --existing-target full
+```
+
+- `ignore` — do not use the current target as policy evidence except for before/after comparison.
+- `summary` — use only a short neutral summary of the current target as weak prior evidence.
+- `full` — use the full current target as quoted evidence, not as live instructions.
+
+Markdown docs like `README.md` remain enabled by default. Use this broad escape hatch when you want non-Markdown evidence only:
+
+```bash
+derive-md regen --profile agents-md --no-markdown-docs
+```
 
 ## Dry run
 
