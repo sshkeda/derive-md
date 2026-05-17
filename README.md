@@ -15,8 +15,8 @@ derive-md regen --profile agents-md
 This command:
 
 1. detects the current repo and target `AGENTS.md`
-2. writes a context pack under `.derive-md/runs/`
-3. launches Pi with a controlled `agents-md` prompt
+2. launches Pi with a controlled `agents-md` prompt
+3. tells Pi to inspect the repo, git status, recent commits, and relevant files itself
 4. asks Pi to confirm its understanding before editing
 5. expects Pi to rewrite `AGENTS.md`, show a diff, and run the linter
 
@@ -42,7 +42,7 @@ Planned profiles:
 derive-md regen --profile agents-md --dry-run
 ```
 
-This writes the context pack and prints the Pi prompt without launching Pi.
+This prints the Pi prompt without launching Pi.
 
 ## AGENTS.md linting
 

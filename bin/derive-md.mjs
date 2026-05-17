@@ -19,8 +19,8 @@ const PROFILES = {
     title: "AGENTS.md",
     target: "AGENTS.md",
     lintable: true,
-    prompt({ targetPath, contextPath }) {
-      return `You are updating ${targetPath} using the derive-md agents-md profile; treat this as a focused Markdown artifact regeneration session, not a general coding task. First inspect this repo deeply, read the context pack at ${contextPath}, then summarize your understanding of the repo, the intended agent behavior, and the AGENTS.md update goal before editing. Ask me to confirm that understanding; only after confirmation, rewrite AGENTS.md as compact prioritized agent policy, show the diff, and run \`derive-md lint --profile agents-md AGENTS.md\`.`;
+    prompt({ targetPath }) {
+      return `You are updating ${targetPath} using the derive-md agents-md profile; treat this as a focused Markdown artifact regeneration session, not a general coding task. First inspect this repo yourself: read the target Markdown file, relevant repo docs and manifests, git status, and recent commits to infer the repo-specific agent policy. Then summarize your understanding of the repo, the intended agent behavior, and the AGENTS.md update goal, and ask me to confirm before editing; only after confirmation, rewrite AGENTS.md as compact prioritized agent policy, show the diff, and run \`derive-md lint --profile agents-md AGENTS.md\`.`;
     },
   },
 };
@@ -30,7 +30,7 @@ function usage() {
 
 Usage:
   derive-md regen [--profile agents-md] [target] [-- pi args...]  Open pi with a focused regeneration prompt
-  derive-md regen --dry-run [--profile agents-md] [target]       Write context and print the prompt without launching pi
+  derive-md regen --dry-run [--profile agents-md] [target]       Print the prompt without launching pi
   derive-md lint [--profile agents-md] [path]                    Lint a managed Markdown artifact
   derive-md check [--profile agents-md] [path]                   Alias for lint
   derive-md profiles                                             List built-in profiles
@@ -257,90 +257,12 @@ function runLint(args) {
   return issues.some((issue) => issue.severity === "error") ? 1 : 0;
 }
 
-function shellOutput(command, options = {}) {
-  const result = spawnSync(command[0], command.slice(1), { encoding: "utf8", ...options });
-  if (result.status !== 0) return "";
-  return result.stdout.trim();
-}
-
-function firstExisting(paths) {
-  return paths.filter((p) => fs.existsSync(path.resolve(p)));
-}
-
-function writeContextPack(profile, targetPath) {
-  const cwd = process.cwd();
-  const relTarget = path.relative(cwd, targetPath) || path.basename(targetPath);
-  const now = new Date().toISOString().replace(/[:.]/g, "-");
-  const runDir = path.join(cwd, ".derive-md", "runs", `${now}-${profile.id}`);
-  fs.mkdirSync(runDir, { recursive: true });
-  const contextPath = path.join(runDir, "context.md");
-  const gitRoot = shellOutput(["git", "rev-parse", "--show-toplevel"], { cwd }) || cwd;
-  const gitStatus =
-    shellOutput(["git", "status", "--short"], { cwd }) || "(clean or not a git repo)";
-  const recentCommits = shellOutput(["git", "log", "--oneline", "-10"], { cwd }) || "(unavailable)";
-  const candidateFiles = firstExisting([
-    "README.md",
-    "package.json",
-    "AGENTS.md",
-    "CLAUDE.md",
-    "TODO.md",
-    "TODOS.md",
-    "Makefile",
-    "turbo.json",
-    "pnpm-workspace.yaml",
-  ]);
-
-  const body = [
-    `# derive-md context pack`,
-    ``,
-    `- profile: ${profile.id}`,
-    `- target: ${relTarget}`,
-    `- cwd: ${cwd}`,
-    `- git_root: ${gitRoot}`,
-    `- created_at: ${new Date().toISOString()}`,
-    ``,
-    `## Git status`,
-    ``,
-    "```text",
-    gitStatus,
-    "```",
-    ``,
-    `## Recent commits`,
-    ``,
-    "```text",
-    recentCommits,
-    "```",
-    ``,
-    `## Candidate context files`,
-    ``,
-    ...candidateFiles.map((file) => `- ${file}`),
-    ``,
-    `## Profile contract`,
-    ``,
-    profile.id === "agents-md"
-      ? "Regenerate a compact canonical AGENTS.md: one preamble, one ordered list, prioritized agent behavior rules, no documentation prose."
-      : `Profile ${profile.id}.`,
-    ``,
-    `## Target file snapshot`,
-    ``,
-    fs.existsSync(targetPath)
-      ? "```md\n" + fs.readFileSync(targetPath, "utf8").slice(0, 20000) + "\n```"
-      : "Target file does not exist yet.",
-    ``,
-  ].join("\n");
-
-  fs.writeFileSync(contextPath, body);
-  return contextPath;
-}
-
 function runRegen(args) {
   const { profile, rest, passthrough, flags } = parseCommon(args);
   const target = resolveTarget(rest[0] ?? profile.target);
-  const contextPath = writeContextPack(profile, target);
-  const prompt = profile.prompt({ targetPath: target, contextPath });
+  const prompt = profile.prompt({ targetPath: target });
   if (flags.has("dry-run") || flags.has("print-prompt")) {
-    console.log(`Context pack: ${contextPath}`);
-    console.log("\n--- derive-md Pi prompt ---\n");
+    console.log("--- derive-md Pi prompt ---\n");
     console.log(prompt);
     return 0;
   }
@@ -351,7 +273,6 @@ function runRegen(args) {
       ...process.env,
       DERIVE_MD_PREFILL_PROMPT: prompt,
       DERIVE_MD_PROFILE: profile.id,
-      DERIVE_MD_CONTEXT_PACK: contextPath,
       DERIVE_MD_TARGET: target,
     },
   });

@@ -1,6 +1,5 @@
 node_modules/
 dist/
-.derive-md/runs/
 .env
 .DS_Store
 *.log

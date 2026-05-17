@@ -1,6 +1,6 @@
 ---
 name: derive-md
-description: Use when creating, regenerating, linting, or managing machine-maintainable Markdown artifacts with derive-md. Triggers include derive-md, agents-md profile, AGENTS.md regeneration, SKILL.md regeneration, raw source to Markdown derivation, Markdown artifact profiles, context packs, or agentic Markdown rewrite launchers.
+description: Use when creating, regenerating, linting, or managing machine-maintainable Markdown artifacts with derive-md. Triggers include derive-md, agents-md profile, AGENTS.md regeneration, SKILL.md regeneration, raw source to Markdown derivation, Markdown artifact profiles, or agentic Markdown rewrite launchers.
 ---
 
 # derive-md
@@ -12,7 +12,7 @@ It supersedes narrow tools like `pi-agents-md` / `pam` and `arc derive` by makin
 ## Core model
 
 ```text
-derive-md = context packer + profile manager + Pi launcher + artifact index/sync bridge
+derive-md = profile manager + Pi launcher + artifact index/sync bridge
 Pi        = repo-specific reasoning, user confirmation, editing, validation
 agent-recall = optional synced registry/blob layer
 ```
@@ -28,7 +28,7 @@ derive-md regen --profile agents-md --dry-run
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-`derive-md regen --profile agents-md` should be run from the target repo. It writes a context pack under `.derive-md/runs/` and launches Pi with a controlled prompt.
+`derive-md regen --profile agents-md` should be run from the target repo. It launches Pi with a controlled prompt that tells the agent to inspect the repo itself.
 
 Use `--dry-run` when testing from an agent session to avoid launching interactive Pi:
 
@@ -38,7 +38,7 @@ derive-md regen --profile agents-md --dry-run
 
 ## Profiles
 
-A profile defines a managed Markdown workflow: target files, context inputs, prompt contract, validation, and safety rules.
+A profile defines a managed Markdown workflow: target files, prompt contract, validation, and safety rules.
 
 Existing profile:
 
@@ -56,8 +56,8 @@ When asked to update AGENTS.md with derive-md:
 
 1. Run from the target repo.
 2. Prefer `derive-md regen --profile agents-md` for interactive user-driven updates.
-3. Use `derive-md regen --profile agents-md --dry-run` for non-interactive inspection.
-4. The launched agent must inspect the repo, read the context pack, summarize its understanding, and ask the user to confirm before editing.
+3. Use `derive-md regen --profile agents-md --dry-run` to inspect the launch prompt without opening Pi.
+4. The launched agent must inspect the repo files, git status, and recent commits itself, then summarize its understanding and ask the user to confirm before editing.
 5. After editing, run `derive-md lint --profile agents-md AGENTS.md`.
 
 ## Canonical AGENTS.md format
