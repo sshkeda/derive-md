@@ -20,7 +20,7 @@ const PROFILES = {
     target: "AGENTS.md",
     lintable: true,
     prompt({ targetPath }) {
-      return `You are updating ${targetPath} using the derive-md agents-md profile; treat this as a focused Markdown artifact regeneration session, not a general coding task. First inspect this repo yourself: read the target Markdown file, relevant repo docs and manifests, git status, and recent commits to infer the repo-specific agent policy. Then summarize your understanding of the repo, the intended agent behavior, and the AGENTS.md update goal, and ask me to confirm before editing; only after confirmation, rewrite AGENTS.md as compact prioritized agent policy, show the diff, and run \`derive-md lint --profile agents-md AGENTS.md\`.`;
+      return `Regenerate ${targetPath} as a compact, prioritized agent policy using the derive-md agents-md profile. Infer the repo’s conventions and agent needs from local context, then share a brief plan and wait for confirmation before editing. After approval, rewrite the file, show the diff, and run \`derive-md lint --profile agents-md AGENTS.md\`; success is a lint-clean policy that matches the repo’s actual practices.`;
     },
   },
 };
