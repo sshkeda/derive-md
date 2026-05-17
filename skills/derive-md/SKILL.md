@@ -62,9 +62,10 @@ When asked to update AGENTS.md with derive-md:
 1. Run from the target repo.
 2. Prefer `derive-md agents --censor` for interactive user-driven updates.
 3. Use `derive-md agents --censor --dry-run` to inspect the launch prompt and censor config without opening Pi.
-4. The launched agent must infer policy from repo evidence without reading existing AGENTS.md, CLAUDE.md, SKILL.md, or README.md content, then present the inferred policy outline before editing.
-5. The launched agent must not copy the bias-control instruction into the target policy; if future regeneration is relevant, tell agents to use `derive-md agents --censor`.
-6. After editing, run `derive-md lint --profile agents-md AGENTS.md`.
+4. The launched agent must infer policy from repo evidence without reading existing AGENTS.md, CLAUDE.md, SKILL.md, or README.md content, then present a blind inferred policy target before editing.
+5. The launched agent must not claim an exact before/after comparison or ask the user to paste protected files while censored.
+6. The launched agent must not copy the bias-control instruction into the target policy; if future regeneration is relevant, tell agents to use `derive-md agents --censor`.
+7. After editing, run `derive-md lint --profile agents-md AGENTS.md`.
 
 ## Canonical AGENTS.md format
 
