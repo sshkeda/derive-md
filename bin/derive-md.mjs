@@ -37,7 +37,7 @@ const PROFILES = {
       const confirmationClause = censor
         ? "Do not inspect existing AGENTS.md or CLAUDE.md content by any means during inference; this is a generation-time bias control, not a rule to copy into the target file. Before editing, present the inferred policy outline and what it is meant to preserve or change, ask for confirmation, and modify only the managed target after confirmation."
         : "Before editing, present the inferred policy outline and before/after change summary, ask for confirmation, and modify only the managed target after confirmation.";
-      return `Regenerate ${targetPath} as a compact, prioritized policy file for future coding agents, using the repository as the source of truth. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. If the final policy mentions future regeneration of this file, say to use \`derive-md agents --censor\`; do not add a rule telling normal agents not to read AGENTS.md or CLAUDE.md. ${confirmationClause}`;
+      return `Generate a canonical AGENTS.md for ${targetPath}: one short preamble and a prioritized numbered list of ideally 5-7 compact, repo-specific, behavior-changing rules for future coding agents. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. Omit generic advice, stale process notes, headings, sections, and human documentation; if the final policy mentions future regeneration of this file, say to use \`derive-md agents --censor\`, not that normal agents should avoid reading AGENTS.md or CLAUDE.md. ${confirmationClause}`;
     },
   },
 };
@@ -242,11 +242,35 @@ function lintAgentsMd(file) {
       line: 0,
       message: "Expected one ordered numbered list after the preamble.",
     });
-  if (rules.length > 20)
+  if (rules.length <= 2)
     issues.push({
       severity: "warn",
+      line: 0,
+      message: `Rule count is ${rules.length}; likely incomplete unless this repo has almost no agent-specific constraints.`,
+    });
+  else if (rules.length <= 4)
+    issues.push({
+      severity: "warn",
+      line: 0,
+      message: `Rule count is ${rules.length}; below ideal 5-7, acceptable only for very simple repos.`,
+    });
+  else if (rules.length >= 10 && rules.length <= 12)
+    issues.push({
+      severity: "warn",
+      line: rules[9]?.line ?? 0,
+      message: `Rule count is ${rules.length}; ideal is 5-7, and 8-9 should be the upper edge.`,
+    });
+  else if (rules.length >= 13 && rules.length <= 20)
+    issues.push({
+      severity: "warn",
+      line: rules[12]?.line ?? 0,
+      message: `Rule count is ${rules.length}; likely too long for operational agent policy. Keep only behavior-changing repo constraints.`,
+    });
+  else if (rules.length > 20)
+    issues.push({
+      severity: "error",
       line: rules[20]?.line ?? 0,
-      message: `Rule count is ${rules.length}; target 8-15 and warn above 20.`,
+      message: `Rule count is ${rules.length}; canonical AGENTS.md maximum is 20, with 5-7 ideal.`,
     });
 
   for (let i = 0; i < rules.length; i++) {

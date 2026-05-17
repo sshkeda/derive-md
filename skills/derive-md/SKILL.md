@@ -68,6 +68,8 @@ When asked to update AGENTS.md with derive-md:
 
 ## Canonical AGENTS.md format
 
+Target 5-7 prioritized rules. Treat 8-9 as acceptable but near the upper edge; 10+ should be rare.
+
 ```md
 Follow these repo rules in order. If rules conflict, the earlier rule wins.
 
@@ -80,7 +82,7 @@ Rules:
 
 - No headings.
 - Exactly one short preamble.
-- Exactly one ordered numbered list.
+- Exactly one ordered numbered list, ideally 5-7 rules.
 - No sections, unordered lists, command catalogs, tables, or prose docs.
 - Earlier rules are higher priority.
 - Keep commands only when repo-specific, non-obvious, safety-relevant, or exceptions.

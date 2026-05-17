@@ -90,11 +90,12 @@ Rules:
 
 - No headings.
 - Exactly one short preamble.
-- Exactly one ordered numbered list.
+- Exactly one ordered numbered list, ideally 5-7 rules.
 - No sections, unordered lists, command catalogs, tables, or prose docs.
 - Earlier rules are higher priority.
 - Keep commands only when repo-specific, non-obvious, safety-relevant, or exceptions.
 - Delete rule B if an agent that already read rule A would follow B without being told.
+- Treat 8-9 rules as acceptable but near the upper edge; 10+ should be rare.
 
 ## Development
 
