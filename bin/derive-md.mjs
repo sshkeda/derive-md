@@ -37,7 +37,7 @@ const PROFILES = {
       const confirmationClause = censor
         ? "Do not inspect existing AGENTS.md or CLAUDE.md content by any means during inference; this is a generation-time bias control, not a rule to copy into the target file. Before editing, present the inferred policy outline and what it is meant to preserve or change, ask for confirmation, and modify only the managed target after confirmation."
         : "Before editing, present the inferred policy outline and before/after change summary, ask for confirmation, and modify only the managed target after confirmation.";
-      return `Generate a canonical AGENTS.md for ${targetPath}: one short preamble and a prioritized numbered list of ideally 5-7 compact, repo-specific, behavior-changing rules for future coding agents. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. Omit generic advice, stale process notes, headings, sections, and human documentation; if the final policy mentions future regeneration of this file, say to use \`derive-md agents --censor\`, not that normal agents should avoid reading AGENTS.md or CLAUDE.md. ${confirmationClause}`;
+      return `Generate a canonical AGENTS.md for ${targetPath}: one short preamble and a prioritized numbered list of compact operational policy for future coding agents. Target 5 rules by default; use 6-7 only for distinct repo-specific constraints, and exceed 7 only when each extra rule prevents a concrete repo-specific failure mode. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. Omit generic advice, stale process notes, headings, sections, examples, changelog notes, derive-md internals, and human documentation; if the final policy mentions future regeneration of this file, say to use \`derive-md agents --censor\`, not that normal agents should avoid reading AGENTS.md or CLAUDE.md. ${confirmationClause}`;
     },
   },
 };
@@ -254,23 +254,23 @@ function lintAgentsMd(file) {
       line: 0,
       message: `Rule count is ${rules.length}; below ideal 5-7, acceptable only for very simple repos.`,
     });
+  else if (rules.length >= 8 && rules.length <= 9)
+    issues.push({
+      severity: "warn",
+      line: rules[7]?.line ?? 0,
+      message: `Rule count is ${rules.length}; target 5-7 high-salience, repo-specific rules. Remove generic advice, merge related rules, or move documentation elsewhere.`,
+    });
   else if (rules.length >= 10 && rules.length <= 12)
     issues.push({
       severity: "warn",
       line: rules[9]?.line ?? 0,
-      message: `Rule count is ${rules.length}; ideal is 5-7, and 8-9 should be the upper edge.`,
+      message: `Rule count is ${rules.length}; likely too long for operational policy. Every rule above 7 should prevent a concrete repo-specific failure mode.`,
     });
-  else if (rules.length >= 13 && rules.length <= 20)
-    issues.push({
-      severity: "warn",
-      line: rules[12]?.line ?? 0,
-      message: `Rule count is ${rules.length}; likely too long for operational agent policy. Keep only behavior-changing repo constraints.`,
-    });
-  else if (rules.length > 20)
+  else if (rules.length >= 13)
     issues.push({
       severity: "error",
-      line: rules[20]?.line ?? 0,
-      message: `Rule count is ${rules.length}; canonical AGENTS.md maximum is 20, with 5-7 ideal.`,
+      line: rules[12]?.line ?? 0,
+      message: `Rule count is ${rules.length}; exceeds the canonical maximum of 12. Split local instructions, compress related rules, or use an explicit override in a future derive-md release.`,
     });
 
   for (let i = 0; i < rules.length; i++) {
