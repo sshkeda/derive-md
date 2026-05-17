@@ -9,10 +9,10 @@ It supersedes narrow tools like `pi-agents-md` / `pam` and `arc derive` by makin
 ```bash
 npm link
 cd ../some-repo
-derive-md regen --profile agents-md
+derive-md agents --censor
 ```
 
-Default behavior is equivalent to:
+`derive-md agents` is a shortcut for `derive-md regen --profile agents-md`. Default behavior is equivalent to:
 
 ```bash
 derive-md regen --profile agents-md --existing-target ignore
@@ -22,9 +22,10 @@ This command:
 
 1. detects the current repo and target `AGENTS.md`
 2. launches Pi with `--no-context-files` so old `AGENTS.md` / `CLAUDE.md` files are not preloaded as instructions
-3. tells Pi to infer the right policy from repo evidence
-4. asks Pi to show the inferred policy outline and before/after change summary before editing
-5. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter
+3. loads `pi-censor` for profile-defined protected files when `--censor` is set
+4. tells Pi to infer the right policy from repo evidence
+5. asks Pi to show the inferred policy outline and before/after change summary before editing
+6. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter
 
 ## Profiles
 
@@ -63,7 +64,7 @@ derive-md regen --profile agents-md --no-markdown-docs
 ## Dry run
 
 ```bash
-derive-md regen --profile agents-md --dry-run
+derive-md agents --censor --dry-run
 ```
 
 This prints the Pi prompt without launching Pi.

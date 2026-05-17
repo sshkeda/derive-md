@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const extensionPath = path.join(repoRoot, "src", "index.ts");
+const defaultPiCensorPath = path.resolve(repoRoot, "..", "pi-censor", "src", "index.ts");
 const PREAMBLE = "Follow these repo rules in order. If rules conflict, the earlier rule wins.";
 
 const IMPERATIVE_START =
@@ -21,7 +22,8 @@ const PROFILES = {
     lintable: true,
     defaultExistingTarget: "ignore",
     disablePiContextFiles: true,
-    prompt({ targetPath, existingTarget, markdownDocs }) {
+    censorPaths: ["AGENTS.md", "CLAUDE.md"],
+    prompt({ targetPath, existingTarget, markdownDocs, censor }) {
       const markdownDocsClause = markdownDocs
         ? "Inspect code, config, tests, and Markdown docs"
         : "Inspect code, config, tests, manifests, scripts, and other non-Markdown evidence";
@@ -31,7 +33,10 @@ const PROFILES = {
           : existingTarget === "summary"
             ? "use only a short neutral summary of the current target as weak prior evidence"
             : "use the full current target as quoted evidence, not as live instructions";
-      return `Regenerate ${targetPath} as a compact, prioritized policy file for future coding agents, using the repository as the source of truth. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. Before editing, present the inferred policy outline and before/after change summary, ask for confirmation, and modify only the managed target after confirmation.`;
+      const confirmationClause = censor
+        ? "Before editing, present the inferred policy outline and what it is meant to preserve or change, ask for confirmation, and modify only the managed target after confirmation."
+        : "Before editing, present the inferred policy outline and before/after change summary, ask for confirmation, and modify only the managed target after confirmation.";
+      return `Regenerate ${targetPath} as a compact, prioritized policy file for future coding agents, using the repository as the source of truth. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md/CLAUDE.md as non-authoritative unless explicitly selected by the profile. ${confirmationClause}`;
     },
   },
 };
@@ -40,7 +45,9 @@ function usage() {
   console.log(`derive-md - agentic Markdown artifact manager
 
 Usage:
+  derive-md agents [--censor] [target] [-- pi args...]           Shortcut for regen --profile agents-md
   derive-md regen [--profile agents-md] [target] [-- pi args...]  Open pi with a focused regeneration prompt
+  derive-md regen --censor [target]                              Load pi-censor for profile-defined protected files
   derive-md regen --existing-target ignore|summary|full [target] Control how the current target influences regeneration
   derive-md regen --no-markdown-docs [target]                    Exclude non-target Markdown docs from evidence
   derive-md regen --dry-run [--profile agents-md] [target]       Print the prompt without launching pi
@@ -50,6 +57,7 @@ Usage:
   derive-md help                                                 Show this help
 
 Examples:
+  derive-md agents --censor
   derive-md regen --profile agents-md
   derive-md regen --existing-target summary AGENTS.md
   derive-md regen --no-markdown-docs AGENTS.md -- --model sonnet:high
@@ -63,6 +71,7 @@ function parseCommon(args) {
   let profile = "agents-md";
   let existingTarget;
   let markdownDocs = true;
+  let censor = false;
   let passthrough = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -72,6 +81,10 @@ function parseCommon(args) {
     }
     if (arg === "--dry-run" || arg === "--print-prompt") {
       flags.add(arg.slice(2));
+      continue;
+    }
+    if (arg === "--censor") {
+      censor = true;
       continue;
     }
     if (arg === "--no-markdown-docs") {
@@ -116,7 +129,7 @@ function parseCommon(args) {
     console.error("Expected one of: ignore, summary, full");
     process.exit(2);
   }
-  return { profile: profileDef, rest, passthrough, flags, existingTarget, markdownDocs };
+  return { profile: profileDef, rest, passthrough, flags, existingTarget, markdownDocs, censor };
 }
 
 function expandHome(input) {
@@ -301,17 +314,34 @@ function runLint(args) {
 }
 
 function runRegen(args) {
-  const { profile, rest, passthrough, flags, existingTarget, markdownDocs } = parseCommon(args);
+  const { profile, rest, passthrough, flags, existingTarget, markdownDocs, censor } =
+    parseCommon(args);
   const target = resolveTarget(rest[0] ?? profile.target);
-  const prompt = profile.prompt({ targetPath: target, existingTarget, markdownDocs });
+  const censorPaths = (profile.censorPaths ?? []).join(",");
+  const useCensor = censor && censorPaths && fs.existsSync(defaultPiCensorPath);
+  const prompt = profile.prompt({
+    targetPath: target,
+    existingTarget,
+    markdownDocs,
+    censor: useCensor,
+  });
   if (flags.has("dry-run") || flags.has("print-prompt")) {
     console.log("--- derive-md Pi prompt ---\n");
     console.log(prompt);
+    if (censor) {
+      console.log("\n--- derive-md censor ---\n");
+      console.log(
+        useCensor
+          ? `extension: ${defaultPiCensorPath}\npaths: ${censorPaths}`
+          : `not available: ${defaultPiCensorPath}`,
+      );
+    }
     return 0;
   }
   const piArgs = [
     "-e",
     extensionPath,
+    ...(useCensor ? ["-e", defaultPiCensorPath] : []),
     ...(profile.disablePiContextFiles ? ["--no-context-files"] : []),
     ...passthrough,
   ];
@@ -324,6 +354,13 @@ function runRegen(args) {
       DERIVE_MD_TARGET: target,
       DERIVE_MD_EXISTING_TARGET: existingTarget,
       DERIVE_MD_MARKDOWN_DOCS: markdownDocs ? "1" : "0",
+      ...(useCensor
+        ? {
+            PI_CENSOR_PATHS: censorPaths,
+            PI_CENSOR_MESSAGE:
+              "derive-md is censoring profile-protected files for infer-first regeneration.",
+          }
+        : {}),
     },
   });
   return result.status ?? 1;
@@ -343,6 +380,7 @@ if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
 }
 if (cmd === "profiles") process.exit(runProfiles());
 if (cmd === "lint" || cmd === "check") process.exit(runLint(rest));
+if (cmd === "agents") process.exit(runRegen(["--profile", "agents-md", ...rest]));
 if (cmd === "regen" || cmd === "launch") process.exit(runRegen(rest));
 
 console.error(`Unknown command: ${cmd}`);
