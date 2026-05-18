@@ -23,7 +23,7 @@ This command:
 1. detects the current repo and target `AGENTS.md`
 2. launches Pi with `--no-context-files` so old `AGENTS.md` / `CLAUDE.md` files are not preloaded as instructions
 3. snapshots policy docs under `~/.derive-md/projects/.../snapshots/` when `--censor` is set
-4. does not load `pi-censor`; the read/edit/write tools remain available
+4. keeps read/edit/write tools available; `--censor` is prompt-only bias control
 5. tells Pi not to read existing `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, or `README.md` during inference to avoid bias
 6. asks Pi to show the inferred policy outline before editing
 7. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter
