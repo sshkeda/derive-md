@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const extensionPath = path.join(repoRoot, "src", "index.ts");
-const defaultPiCensorPath = path.resolve(repoRoot, "..", "pi-censor", "src", "index.ts");
 const PREAMBLE = "Follow these repo rules in order. If rules conflict, the earlier rule wins.";
 
 const IMPERATIVE_START =
@@ -22,7 +21,7 @@ const PROFILES = {
     lintable: true,
     defaultExistingTarget: "ignore",
     disablePiContextFiles: true,
-    censorPaths: ["AGENTS.md", "CLAUDE.md", "SKILL.md", "README.md"],
+    snapshotPaths: ["AGENTS.md", "CLAUDE.md", "SKILL.md", "README.md"],
     prompt({ targetPath, existingTarget, markdownDocs, censor }) {
       const markdownDocsClause = censor
         ? "Inspect code, config, tests, manifests, scripts, and non-protected docs"
@@ -50,7 +49,7 @@ function usage() {
 Usage:
   derive-md agents [--censor] [target] [-- pi args...]           Shortcut for regen --profile agents-md
   derive-md regen [--profile agents-md] [target] [-- pi args...]  Open pi with a focused regeneration prompt
-  derive-md regen --censor [target]                              Load pi-censor for profile-defined protected files
+  derive-md regen --censor [target]                              Bias-control mode: snapshot policy docs and disable context-file autoload
   derive-md regen --existing-target ignore|summary|full [target] Control how the current target influences regeneration
   derive-md regen --no-markdown-docs [target]                    Exclude non-target Markdown docs from evidence
   derive-md regen --dry-run [--profile agents-md] [target]       Print the prompt without launching pi
@@ -149,7 +148,7 @@ function safeSlug(input) {
   return input.replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^-+|-+$/g, "") || "repo";
 }
 
-function snapshotProtectedFiles(profile, target, censorPaths) {
+function snapshotProtectedFiles(profile, target, snapshotPaths) {
   const cwd = process.cwd();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const project = safeSlug(cwd.replace(os.homedir(), "~"));
@@ -163,7 +162,7 @@ function snapshotProtectedFiles(profile, target, censorPaths) {
   );
   fs.mkdirSync(snapshotDir, { recursive: true });
 
-  const paths = censorPaths
+  const paths = snapshotPaths
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
@@ -396,8 +395,8 @@ function runRegen(args) {
   const { profile, rest, passthrough, flags, existingTarget, markdownDocs, censor } =
     parseCommon(args);
   const target = resolveTarget(rest[0] ?? profile.target);
-  const censorPaths = (profile.censorPaths ?? []).join(",");
-  const useCensor = censor && censorPaths && fs.existsSync(defaultPiCensorPath);
+  const snapshotPaths = (profile.snapshotPaths ?? []).join(",");
+  const useCensor = censor && Boolean(snapshotPaths);
   const prompt = profile.prompt({
     targetPath: target,
     existingTarget,
@@ -411,13 +410,13 @@ function runRegen(args) {
       console.log("\n--- derive-md censor ---\n");
       console.log(
         useCensor
-          ? `extension: ${defaultPiCensorPath}\npaths: ${censorPaths}\nsnapshot: would create before launch`
-          : `not available: ${defaultPiCensorPath}`,
+          ? `mode: prompt-only bias control\nno_context_files: true\nsnapshot_paths: ${snapshotPaths}\nsnapshot: would create before launch`
+          : "not enabled",
       );
     }
     return 0;
   }
-  const snapshot = useCensor ? snapshotProtectedFiles(profile, target, censorPaths) : undefined;
+  const snapshot = useCensor ? snapshotProtectedFiles(profile, target, snapshotPaths) : undefined;
   if (snapshot) {
     console.log(`derive-md snapshot: ${snapshot.snapshotDir}`);
   }
@@ -425,7 +424,6 @@ function runRegen(args) {
   const piArgs = [
     "-e",
     extensionPath,
-    ...(useCensor ? ["-e", defaultPiCensorPath] : []),
     ...(profile.disablePiContextFiles ? ["--no-context-files"] : []),
     ...passthrough,
   ];
@@ -438,14 +436,7 @@ function runRegen(args) {
       DERIVE_MD_TARGET: target,
       DERIVE_MD_EXISTING_TARGET: existingTarget,
       DERIVE_MD_MARKDOWN_DOCS: markdownDocs ? "1" : "0",
-      ...(useCensor
-        ? {
-            PI_CENSOR_PATHS: censorPaths,
-            PI_CENSOR_MESSAGE:
-              "derive-md is hiding profile-protected files to reduce infer-first bias.",
-            DERIVE_MD_SNAPSHOT_DIR: snapshot?.snapshotDir ?? "",
-          }
-        : {}),
+      ...(useCensor ? { DERIVE_MD_SNAPSHOT_DIR: snapshot?.snapshotDir ?? "" } : {}),
     },
   });
   return result.status ?? 1;
