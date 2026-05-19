@@ -21,8 +21,8 @@ Pi must be installed separately. See https://github.com/earendil-works/pi-mono.
 ```bash
 cd /path/to/any-repo
 
-derive-md readme    # writes a fresh README.md
-derive-md agents    # writes a fresh AGENTS.md
+derive-md readme --censor    # writes a fresh README.md
+derive-md agents --censor    # writes a fresh AGENTS.md
 ```
 
 Both commands open an interactive Pi session in your terminal. Pi will:
@@ -35,17 +35,28 @@ Both commands open an interactive Pi session in your terminal. Pi will:
 If you'd rather see the prompt Pi would receive without actually launching it:
 
 ```bash
-derive-md readme --dry-run
+derive-md readme --censor --dry-run
 ```
+
+## What `--censor` does
+
+`--censor` hides the existing `README.md` / `AGENTS.md` / `CLAUDE.md` / `SKILL.md` from Pi while it's inferring what to write, so the new file is rebuilt from the actual code instead of just being a reword of what was already there.
+
+The flow with `--censor`:
+
+1. `derive-md` snapshots the four protected files under `~/.derive-md/projects/<slug>/snapshots/<timestamp>/` — nothing is destroyed.
+2. Pi is launched with `--no-context-files`, so it doesn't auto-load `AGENTS.md`/`CLAUDE.md` as instructions either.
+3. The prompt to Pi says: don't look at the existing target by any means during inference.
+4. Pi proposes an outline, you confirm, Pi writes only the target file.
+
+Without `--censor`, Pi can still peek at the existing file for context and may reuse phrasing from it.
 
 ## What gets generated
 
-- `derive-md readme` produces a public-facing `README.md`: one-line pitch, install, usage, and the sections that actually have evidence in the repo.
-- `derive-md agents` produces an `AGENTS.md`: a short prioritized list of rules that other AI coding tools should follow when working in this repo.
+- `derive-md readme` produces a public-facing `README.md`: a short pitch, install, usage, and the sections that actually have evidence in the repo.
+- `derive-md agents` produces an `AGENTS.md`: a short prioritized list of rules other AI coding tools should follow when working in the repo.
 
-Both are rebuilt from scratch by default. The current contents of `README.md` / `AGENTS.md` / `CLAUDE.md` / `SKILL.md` are intentionally hidden from Pi during inference so it can't just reword what's there — it has to look at the actual code.
-
-If you'd rather let Pi use the current file as evidence:
+If you'd rather let Pi use the current file as evidence (instead of fully censoring), drop `--censor` and use one of:
 
 ```bash
 derive-md regen --profile readme-md --existing-target summary
