@@ -41,26 +41,55 @@ const PROFILES = {
       return `Generate a canonical AGENTS.md for ${targetPath}: one short preamble and a prioritized numbered list of compact operational policy for future coding agents. Target 5 rules by default; use 6-7 only for distinct repo-specific constraints, and exceed 7 only when each extra rule prevents a concrete repo-specific failure mode. ${markdownDocsClause}; ${targetClause}, and treat existing AGENTS.md, CLAUDE.md, SKILL.md, and README.md as non-authoritative unless explicitly selected by the profile. Omit generic advice, stale process notes, headings, sections, examples, changelog notes, derive-md internals, and human documentation; if the final policy mentions future regeneration of this file, say to use \`derive-md agents --censor\`, not that normal agents should avoid reading AGENTS.md, CLAUDE.md, SKILL.md, or README.md. ${confirmationClause}`;
     },
   },
+  "readme-md": {
+    id: "readme-md",
+    title: "README.md",
+    target: "README.md",
+    lintable: false,
+    defaultExistingTarget: "ignore",
+    disablePiContextFiles: true,
+    snapshotPaths: ["README.md", "AGENTS.md", "CLAUDE.md", "SKILL.md"],
+    prompt({ targetPath, existingTarget, markdownDocs, censor }) {
+      const markdownDocsClause = censor
+        ? "Inspect code, config, tests, manifests, scripts, package.json, public APIs, and non-protected docs"
+        : markdownDocs
+          ? "Inspect code, config, tests, manifests, package.json, public APIs, and Markdown docs"
+          : "Inspect code, config, tests, manifests, package.json, public APIs, and other non-Markdown evidence";
+      const targetClause = censor
+        ? "do not use the current README or sibling docs as evidence during inference"
+        : existingTarget === "ignore"
+          ? "ignore the current README as content evidence except for before/after comparison"
+          : existingTarget === "summary"
+            ? "use only a short neutral summary of the current README as weak prior evidence"
+            : "use the full current README as quoted evidence, not as live structure";
+      const confirmationClause = censor
+        ? "Do not inspect existing README.md, AGENTS.md, CLAUDE.md, or SKILL.md content by any means during inference; this is a generation-time bias control, not a rule for the produced README. Before editing, present the inferred outline (working title, one-line pitch, planned sections in order, what each section will contain), ask for confirmation, then modify only the managed target after confirmation."
+        : "Before editing, present the inferred outline (working title, one-line pitch, planned sections in order, what each section will contain) and before/after change summary, ask for confirmation, and modify only the managed target after confirmation.";
+      return `Generate a canonical README.md for ${targetPath}: a public-facing introduction for someone landing on this repo cold. Open with the repo name as an H1, then a one-to-two-sentence pitch that states what it is and the problem it solves. Then sections in this order when relevant: Install, Usage (one minimal working example, runnable as-is), Configuration or Options (only if there are user-facing flags/env), How it works (only when the behaviour is non-obvious), Development (test/lint/typecheck commands), License. ${markdownDocsClause}; ${targetClause}, and treat existing README.md, AGENTS.md, CLAUDE.md, and SKILL.md as non-authoritative unless explicitly selected by the profile. Prefer concise sentences over exhaustive enumeration; show real commands with the same flags the package.json actually exposes; cite real file paths and identifiers from the source. Omit emojis, badges, decorative banners, generic "Why X" filler, marketing language, FAQ, roadmaps, contributing boilerplate, derive-md internals, and AGENTS-style operational rules. Do not invent features that are not in the source; if a section has no evidence, omit it. ${confirmationClause}`;
+    },
+  },
 };
 
 function usage() {
   console.log(`derive-md - agentic Markdown artifact manager
 
 Usage:
-  derive-md agents [--censor] [target] [-- pi args...]           Shortcut for regen --profile agents-md
-  derive-md regen [--profile agents-md] [target] [-- pi args...]  Open pi with a focused regeneration prompt
-  derive-md regen --censor [target]                              Bias-control mode: snapshot policy docs and disable context-file autoload
-  derive-md regen --existing-target ignore|summary|full [target] Control how the current target influences regeneration
-  derive-md regen --no-markdown-docs [target]                    Exclude non-target Markdown docs from evidence
-  derive-md regen --dry-run [--profile agents-md] [target]       Print the prompt without launching pi
-  derive-md lint [--profile agents-md] [path]                    Lint a managed Markdown artifact
-  derive-md check [--profile agents-md] [path]                   Alias for lint
-  derive-md profiles                                             List built-in profiles
-  derive-md help                                                 Show this help
+  derive-md agents [--censor] [target] [-- pi args...]                  Shortcut for regen --profile agents-md
+  derive-md readme [--censor] [target] [-- pi args...]                  Shortcut for regen --profile readme-md
+  derive-md regen [--profile agents-md|readme-md] [target] [-- pi args] Open pi with a focused regeneration prompt
+  derive-md regen --censor [target]                                     Bias-control mode: snapshot policy docs and disable context-file autoload
+  derive-md regen --existing-target ignore|summary|full [target]        Control how the current target influences regeneration
+  derive-md regen --no-markdown-docs [target]                           Exclude non-target Markdown docs from evidence
+  derive-md regen --dry-run [--profile <id>] [target]                   Print the prompt without launching pi
+  derive-md lint [--profile agents-md] [path]                           Lint a managed Markdown artifact
+  derive-md check [--profile agents-md] [path]                          Alias for lint
+  derive-md profiles                                                    List built-in profiles
+  derive-md help                                                        Show this help
 
 Examples:
   derive-md agents --censor
-  derive-md regen --profile agents-md
+  derive-md readme --censor
+  derive-md regen --profile readme-md
   derive-md regen --existing-target summary AGENTS.md
   derive-md regen --no-markdown-docs AGENTS.md -- --model sonnet:high
   derive-md lint --profile agents-md AGENTS.md
@@ -457,6 +486,7 @@ if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
 if (cmd === "profiles") process.exit(runProfiles());
 if (cmd === "lint" || cmd === "check") process.exit(runLint(rest));
 if (cmd === "agents") process.exit(runRegen(["--profile", "agents-md", ...rest]));
+if (cmd === "readme") process.exit(runRegen(["--profile", "readme-md", ...rest]));
 if (cmd === "regen" || cmd === "launch") process.exit(runRegen(rest));
 
 console.error(`Unknown command: ${cmd}`);

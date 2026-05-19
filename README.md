@@ -9,13 +9,21 @@ It supersedes narrow tools like `pi-agents-md` / `pam` and `arc derive` by makin
 ```bash
 npm link
 cd ../some-repo
+
+# regenerate AGENTS.md
 derive-md agents --censor
+
+# regenerate README.md
+derive-md readme --censor
 ```
 
-`derive-md agents` is a shortcut for `derive-md regen --profile agents-md`. Default behavior is equivalent to:
+`derive-md agents` is a shortcut for `derive-md regen --profile agents-md`, and
+`derive-md readme` is a shortcut for `derive-md regen --profile readme-md`. Default
+behavior is equivalent to:
 
 ```bash
 derive-md regen --profile agents-md --existing-target ignore
+derive-md regen --profile readme-md --existing-target ignore
 ```
 
 This command:
@@ -37,11 +45,11 @@ derive-md profiles
 Built-in profiles:
 
 - `agents-md` — compact prioritized `AGENTS.md` policy files for coding agents
+- `readme-md` — public-facing `README.md` for someone landing on the repo cold
 
 Planned profiles:
 
 - `skill-md` — Pi/Claude-style skill files
-- `readme-md` — repo README regeneration
 - `source-derived-md` — raw source data to semantic Markdown derivatives
 
 ## Existing target modes
