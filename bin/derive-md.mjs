@@ -81,6 +81,8 @@ Usage:
   derive-md regen --existing-target ignore|summary|full [target]        Control how the current target influences regeneration
   derive-md regen --no-markdown-docs [target]                           Exclude non-target Markdown docs from evidence
   derive-md regen --dry-run [--profile <id>] [target]                   Print the prompt without launching pi
+  derive-md prompt [--profile <id>] [target]                            Print just the prompt string to stdout (no Pi launch, no decoration)
+  derive-md context [--profile <id>] [target]                           Print JSON context (prompt + profile metadata) for non-interactive agent runs
   derive-md lint [--profile agents-md] [path]                           Lint a managed Markdown artifact
   derive-md check [--profile agents-md] [path]                          Alias for lint
   derive-md profiles                                                    List built-in profiles
@@ -420,6 +422,47 @@ function runLint(args) {
   return issues.some((issue) => issue.severity === "error") ? 1 : 0;
 }
 
+function runContext(args) {
+  const { profile, rest, existingTarget, markdownDocs, censor } = parseCommon(args);
+  const target = resolveTarget(rest[0] ?? profile.target);
+  const snapshotPaths = profile.snapshotPaths ?? [];
+  const useCensor = censor && snapshotPaths.length > 0;
+  const prompt = profile.prompt({
+    targetPath: target,
+    existingTarget,
+    markdownDocs,
+    censor: useCensor,
+  });
+  const context = {
+    profile: profile.id,
+    title: profile.title,
+    target,
+    existingTarget,
+    markdownDocs,
+    censor: useCensor,
+    snapshotPaths,
+    disablePiContextFiles: Boolean(profile.disablePiContextFiles),
+    cwd: process.cwd(),
+    prompt,
+  };
+  console.log(JSON.stringify(context, null, 2));
+  return 0;
+}
+
+function runPrompt(args) {
+  const { profile, rest, existingTarget, markdownDocs, censor } = parseCommon(args);
+  const target = resolveTarget(rest[0] ?? profile.target);
+  const useCensor = censor && (profile.snapshotPaths ?? []).length > 0;
+  const prompt = profile.prompt({
+    targetPath: target,
+    existingTarget,
+    markdownDocs,
+    censor: useCensor,
+  });
+  console.log(prompt);
+  return 0;
+}
+
 function runRegen(args) {
   const { profile, rest, passthrough, flags, existingTarget, markdownDocs, censor } =
     parseCommon(args);
@@ -488,6 +531,8 @@ if (cmd === "lint" || cmd === "check") process.exit(runLint(rest));
 if (cmd === "agents") process.exit(runRegen(["--profile", "agents-md", ...rest]));
 if (cmd === "readme") process.exit(runRegen(["--profile", "readme-md", ...rest]));
 if (cmd === "regen" || cmd === "launch") process.exit(runRegen(rest));
+if (cmd === "prompt") process.exit(runPrompt(rest));
+if (cmd === "context") process.exit(runContext(rest));
 
 console.error(`Unknown command: ${cmd}`);
 usage();
