@@ -1,40 +1,36 @@
 # derive-md
 
-`derive-md` is an agentic Markdown artifact manager and Pi launcher.
+Auto-generate `AGENTS.md` and `README.md` files for your repo. `derive-md` launches [Pi](https://github.com/earendil-works/pi-mono) (a coding agent) with a focused prompt — Pi reads the code, shows you an outline, asks for confirmation, and writes the file.
 
-It supersedes narrow tools like `pi-agents-md` / `pam` and `arc derive` by making each Markdown workflow a profile. The CLI prepares context; Pi does the repo-specific reasoning, asks for confirmation, edits, and validates.
-
-## Current MVP
+## Install
 
 ```bash
+git clone https://github.com/sshkeda/derive-md
+cd derive-md
 npm link
-cd ../some-repo
+```
 
-# regenerate AGENTS.md
+You'll also need [Pi](https://github.com/earendil-works/pi-mono) installed (`derive-md` shells out to the `pi` CLI).
+
+## Usage
+
+```bash
+cd /path/to/any-repo
+
+# Regenerate AGENTS.md from scratch
 derive-md agents --censor
 
-# regenerate README.md
+# Regenerate README.md from scratch
 derive-md readme --censor
 ```
 
-`derive-md agents` is a shortcut for `derive-md regen --profile agents-md`, and
-`derive-md readme` is a shortcut for `derive-md regen --profile readme-md`. Default
-behavior is equivalent to:
+`--censor` tells Pi to ignore any existing `AGENTS.md` / `README.md` / `CLAUDE.md` / `SKILL.md` while inferring, so the new file is rebuilt from code/config/tests rather than rewording whatever was there before. Pi snapshots the originals first under `~/.derive-md/projects/.../snapshots/`, then asks you to confirm an inferred outline before writing.
+
+Add `--dry-run` to print the prompt without launching Pi:
 
 ```bash
-derive-md regen --profile agents-md --existing-target ignore
-derive-md regen --profile readme-md --existing-target ignore
+derive-md agents --censor --dry-run
 ```
-
-This command:
-
-1. detects the current repo and target `AGENTS.md`
-2. launches Pi with `--no-context-files` so old `AGENTS.md` / `CLAUDE.md` files are not preloaded as instructions
-3. snapshots policy docs under `~/.derive-md/projects/.../snapshots/` when `--censor` is set
-4. keeps read/edit/write tools available; `--censor` is prompt-only bias control
-5. tells Pi not to read existing `AGENTS.md`, `CLAUDE.md`, `SKILL.md`, or `README.md` during inference to avoid bias
-6. asks Pi to show the inferred policy outline before editing
-7. expects Pi to rewrite only `AGENTS.md`, show a diff, and run the linter
 
 ## Profiles
 
@@ -42,41 +38,40 @@ This command:
 derive-md profiles
 ```
 
-Built-in profiles:
+| Profile | Target | What it produces |
+|---|---|---|
+| `agents-md` | `AGENTS.md` | Compact prioritized rules list for coding agents |
+| `readme-md` | `README.md` | Public-facing README with pitch, install, usage, etc. |
 
-- `agents-md` — compact prioritized `AGENTS.md` policy files for coding agents
-- `readme-md` — public-facing `README.md` for someone landing on the repo cold
+Planned: `skill-md`, `source-derived-md`.
 
-Planned profiles:
+## Existing-target modes
 
-- `skill-md` — Pi/Claude-style skill files
-- `source-derived-md` — raw source data to semantic Markdown derivatives
-
-## Existing target modes
+By default Pi ignores any existing target file. You can change that:
 
 ```bash
-derive-md regen --profile agents-md --existing-target ignore
-derive-md regen --profile agents-md --existing-target summary
-derive-md regen --profile agents-md --existing-target full
+derive-md regen --profile agents-md --existing-target ignore   # default
+derive-md regen --profile agents-md --existing-target summary  # short neutral summary as weak prior
+derive-md regen --profile agents-md --existing-target full     # full content as quoted evidence
 ```
 
-- `ignore` — do not use the current target as policy evidence except for before/after comparison.
-- `summary` — use only a short neutral summary of the current target as weak prior evidence.
-- `full` — use the full current target as quoted evidence, not as live instructions.
-
-Markdown docs like `README.md` remain enabled by default. Use this broad escape hatch when you want non-Markdown evidence only:
+Or drop Markdown docs from the evidence pool entirely:
 
 ```bash
 derive-md regen --profile agents-md --no-markdown-docs
 ```
 
-## Dry run
+## Non-interactive helpers
+
+For agents driving `derive-md` without spawning Pi:
 
 ```bash
-derive-md agents --censor --dry-run
-```
+# Just print the prompt
+derive-md prompt --profile readme-md
 
-This prints the Pi prompt without launching Pi.
+# Print JSON with prompt + profile metadata
+derive-md context --profile readme-md
+```
 
 ## AGENTS.md linting
 
@@ -84,7 +79,7 @@ This prints the Pi prompt without launching Pi.
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-Canonical AGENTS.md format:
+Canonical `AGENTS.md` format:
 
 ```md
 Follow these repo rules in order. If rules conflict, the earlier rule wins.
@@ -98,12 +93,12 @@ Rules:
 
 - No headings.
 - Exactly one short preamble.
-- Exactly one ordered numbered list; target 5 rules by default and 5-7 as the ideal range.
+- Exactly one ordered numbered list; target 5 rules, ideal 5–7.
 - No sections, unordered lists, command catalogs, tables, or prose docs.
 - Earlier rules are higher priority.
-- Keep commands only when repo-specific, non-obvious, safety-relevant, or exceptions.
+- Keep commands only when repo-specific, non-obvious, or safety-relevant.
 - Delete rule B if an agent that already read rule A would follow B without being told.
-- Warn at 8-9 rules, strongly warn at 10-12, and treat 13+ as invalid without an explicit future override.
+- Warn at 8–9 rules, strongly warn at 10–12, treat 13+ as invalid.
 
 ## Development
 
@@ -113,3 +108,7 @@ npm run lint
 npm run format:check
 npm run agents-md:lint
 ```
+
+## License
+
+MIT
