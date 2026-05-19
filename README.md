@@ -1,6 +1,10 @@
 # derive-md
 
-Auto-generate `AGENTS.md` and `README.md` files for your repo. `derive-md` launches [Pi](https://github.com/earendil-works/pi-mono) (a coding agent) with a focused prompt — Pi reads the code, shows you an outline, asks for confirmation, and writes the file.
+A small command that writes a fresh `README.md` or `AGENTS.md` for the repository you're in.
+
+You run `derive-md readme` from inside any repo. Behind the scenes it launches [Pi](https://github.com/earendil-works/pi-mono) — a terminal-based AI coding assistant — with a focused prompt. Pi looks at your code, tests, and package files, shows you an outline of what it plans to write, and only writes the file after you confirm.
+
+The point: get a clean, accurate doc that matches what the code actually does, without rewording whatever stale content was there before.
 
 ## Install
 
@@ -10,26 +14,42 @@ cd derive-md
 npm link
 ```
 
-You'll also need [Pi](https://github.com/earendil-works/pi-mono) installed (`derive-md` shells out to the `pi` CLI).
+Pi must be installed separately. See https://github.com/earendil-works/pi-mono.
 
-## Usage
+## Use it
 
 ```bash
 cd /path/to/any-repo
 
-# Regenerate AGENTS.md from scratch
-derive-md agents --censor
-
-# Regenerate README.md from scratch
-derive-md readme --censor
+derive-md readme    # writes a fresh README.md
+derive-md agents    # writes a fresh AGENTS.md
 ```
 
-`--censor` tells Pi to ignore any existing `AGENTS.md` / `README.md` / `CLAUDE.md` / `SKILL.md` while inferring, so the new file is rebuilt from code/config/tests rather than rewording whatever was there before. Pi snapshots the originals first under `~/.derive-md/projects/.../snapshots/`, then asks you to confirm an inferred outline before writing.
+Both commands open an interactive Pi session in your terminal. Pi will:
 
-Add `--dry-run` to print the prompt without launching Pi:
+1. Read the repo's code, configs, and tests.
+2. Show you a plain outline of the file it's about to write.
+3. Wait for you to confirm or adjust.
+4. Write the file.
+
+If you'd rather see the prompt Pi would receive without actually launching it:
 
 ```bash
-derive-md agents --censor --dry-run
+derive-md readme --dry-run
+```
+
+## What gets generated
+
+- `derive-md readme` produces a public-facing `README.md`: one-line pitch, install, usage, and the sections that actually have evidence in the repo.
+- `derive-md agents` produces an `AGENTS.md`: a short prioritized list of rules that other AI coding tools should follow when working in this repo.
+
+Both are rebuilt from scratch by default. The current contents of `README.md` / `AGENTS.md` / `CLAUDE.md` / `SKILL.md` are intentionally hidden from Pi during inference so it can't just reword what's there — it has to look at the actual code.
+
+If you'd rather let Pi use the current file as evidence:
+
+```bash
+derive-md regen --profile readme-md --existing-target summary
+derive-md regen --profile readme-md --existing-target full
 ```
 
 ## Profiles
@@ -38,48 +58,22 @@ derive-md agents --censor --dry-run
 derive-md profiles
 ```
 
-| Profile | Target | What it produces |
-|---|---|---|
-| `agents-md` | `AGENTS.md` | Compact prioritized rules list for coding agents |
-| `readme-md` | `README.md` | Public-facing README with pitch, install, usage, etc. |
+Built in:
+
+- `readme-md` — public-facing `README.md`
+- `agents-md` — compact `AGENTS.md` rules file
 
 Planned: `skill-md`, `source-derived-md`.
 
-## Existing-target modes
-
-By default Pi ignores any existing target file. You can change that:
-
-```bash
-derive-md regen --profile agents-md --existing-target ignore   # default
-derive-md regen --profile agents-md --existing-target summary  # short neutral summary as weak prior
-derive-md regen --profile agents-md --existing-target full     # full content as quoted evidence
-```
-
-Or drop Markdown docs from the evidence pool entirely:
-
-```bash
-derive-md regen --profile agents-md --no-markdown-docs
-```
-
-## Non-interactive helpers
-
-For agents driving `derive-md` without spawning Pi:
-
-```bash
-# Just print the prompt
-derive-md prompt --profile readme-md
-
-# Print JSON with prompt + profile metadata
-derive-md context --profile readme-md
-```
-
 ## AGENTS.md linting
+
+`AGENTS.md` files have a strict canonical format. To check one:
 
 ```bash
 derive-md lint --profile agents-md AGENTS.md
 ```
 
-Canonical `AGENTS.md` format:
+The canonical format is:
 
 ```md
 Follow these repo rules in order. If rules conflict, the earlier rule wins.
@@ -91,9 +85,8 @@ Follow these repo rules in order. If rules conflict, the earlier rule wins.
 
 Rules:
 
-- No headings.
-- Exactly one short preamble.
-- Exactly one ordered numbered list; target 5 rules, ideal 5–7.
+- One short preamble. No headings.
+- One ordered numbered list. Target 5 rules, ideal 5–7.
 - No sections, unordered lists, command catalogs, tables, or prose docs.
 - Earlier rules are higher priority.
 - Keep commands only when repo-specific, non-obvious, or safety-relevant.
